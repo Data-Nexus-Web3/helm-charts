@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  avalanche:
+  - apiVersion: v2
+    appVersion: v1.14.1
+    created: "2026-02-18T06:16:51.721624138Z"
+    description: Deploy and scale AvalancheGo RPC nodes inside Kubernetes
+    digest: d08cbad18f0332aae576bb3e53f5b2eb46aadd4ea2b6c6a5a4c3af04a6417d44
+    home: https://www.avax.network
+    keywords:
+    - avalanche
+    - avalanchego
+    - blockchain
+    - rpc
+    - web3
+    maintainers:
+    - name: vincepetoscia
+    name: avalanche
+    sources:
+    - https://github.com/ava-labs/avalanchego
+    type: application
+    urls:
+    - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/avalanche-0.1.0/avalanche-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-02-18T06:16:51.721629979Z"
