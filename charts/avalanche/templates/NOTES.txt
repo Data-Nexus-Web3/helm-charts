@@ -1,0 +1,24 @@
+Avalanche RPC node has been deployed!
+
+Network: {{ .Values.avalanche.networkId }}
+Image:   {{ .Values.image.repository }}:{{ include "avalanche.imageTag" . }}
+
+Get the RPC endpoint:
+{{- if contains "NodePort" .Values.avalanche.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "avalanche.fullname" . }}-avalanche)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "RPC URL: http://$NODE_IP:$NODE_PORT/ext/bc/C/rpc"
+{{- else if contains "LoadBalancer" .Values.avalanche.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "avalanche.fullname" . }}-avalanche --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "RPC URL: http://$SERVICE_IP:{{ (index .Values.avalanche.service.ports "http-rpc") }}/ext/bc/C/rpc"
+{{- else }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "avalanche.fullname" . }}-avalanche {{ (index .Values.avalanche.service.ports "http-rpc") }}:{{ (index .Values.avalanche.service.ports "http-rpc") }}
+  echo "RPC URL: http://127.0.0.1:{{ (index .Values.avalanche.service.ports "http-rpc") }}/ext/bc/C/rpc"
+{{- end }}
+
+Check node health:
+  kubectl exec -n {{ .Release.Namespace }} {{ include "avalanche.fullname" . }}-avalanche-0 -- wget -qO- http://localhost:{{ (index .Values.avalanche.service.ports "http-rpc") }}/ext/health
+
+Check bootstrap status:
+  kubectl exec -n {{ .Release.Namespace }} {{ include "avalanche.fullname" . }}-avalanche-0 -- wget -qO- --header='Content-Type: application/json' --post-data='{"jsonrpc":"2.0","id":1,"method":"info.isBootstrapped","params":{"chain":"C"}}' http://localhost:{{ (index .Values.avalanche.service.ports "http-rpc") }}/ext/info

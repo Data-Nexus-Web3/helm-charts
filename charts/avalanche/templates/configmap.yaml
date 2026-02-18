@@ -1,0 +1,20 @@
+{{- $values := $.Values.avalanche }}
+{{- $componentName := "avalanche" }}
+{{- $componentLabel := include "avalanche.componentLabelFor" $componentName }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "avalanche.fullname" . }}-config
+  labels:
+    {{- include "avalanche.labels" . | nindent 4 }}
+    {{- $componentLabel | nindent 4 }}
+data:
+  node-config.json: |
+    {{- $merged := merge (dict "http-port" (include "avalanche.httpPort" $ | int64) "staking-port" (include "avalanche.stakingPort" $ | int64)) .Values.nodeConfig }}
+    {{- $merged | toPrettyJson | nindent 4 }}
+  c-chain-config.json: |
+    {{- .Values.cChainConfig | toPrettyJson | nindent 4 }}
+  {{- range $chain, $config := .Values.extraChainConfigs }}
+  {{ $chain }}-config.json: |
+    {{- $config | toPrettyJson | nindent 4 }}
+  {{- end }}

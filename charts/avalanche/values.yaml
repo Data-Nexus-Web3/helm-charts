@@ -1,0 +1,218 @@
+# Default values for avalanche.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # -- AvalancheGo container image
+  repository: avaplatform/avalanchego
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (default: Chart.appVersion)
+  tag: ""
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  # -- If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+rbac:
+  create: true
+  clusterRules:
+    - apiGroups: [""]
+      resources: ["nodes"]
+      verbs: ["get", "list", "watch"]
+  rules:
+    - apiGroups: [""]
+      resources: ["services"]
+      verbs: ["get", "list", "watch"]
+
+avalanche:
+  # -- Network to connect to: mainnet, fuji, testnet, local, or network-<id>
+  networkId: "mainnet"
+
+  # -- Additional CLI arguments passed to avalanchego
+  extraArgs: []
+
+  # -- Extra labels to attach to the Pod
+  extraLabels: {}
+
+  # -- Number of replicas (forced to 1 when p2pNodePort is enabled)
+  replicaCount: 1
+
+  # -- PersistentVolumeClaimSpec for chain data
+  volumeClaimSpec:
+    accessModes: ["ReadWriteOnce"]
+    storageClassName:
+    resources:
+      requests:
+        storage: 2Ti
+
+  # -- Seconds to wait before force-killing the container
+  terminationGracePeriodSeconds: 120
+
+  podAnnotations: {}
+
+  podSecurityContext:
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+
+  service:
+    topologyAwareRouting:
+      enabled: false
+    type: ClusterIP
+    ports:
+      http-rpc: 9650
+      http-staking: 9651
+
+  resources: {}
+    # limits:
+    #   cpu: 8
+    #   memory: 16Gi
+    # requests:
+    #   cpu: 4
+    #   memory: 8Gi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinityPresets:
+    antiAffinityByHostname: true
+
+  affinity: {}
+
+  p2pNodePort:
+    enabled: false
+    port: 31000
+    initContainer:
+      image:
+        repository: bitnami/kubectl
+        tag: "1.29"
+        pullPolicy: IfNotPresent
+
+  # -- Snapshot restore via streaming download (runs as init container)
+  # Uses https://github.com/nodeify-eth/stream-download
+  # Idempotent: writes a stamp file and skips on subsequent restarts.
+  snapshotRestore:
+    enabled: false
+    image:
+      repository: ghcr.io/nodeify-eth/stream-download
+      tag: latest
+      pullPolicy: IfNotPresent
+    # -- Snapshot URL (required when enabled). Supports .tar, .tar.gz, .tar.zst, .tar.lz4
+    url: ""
+    # -- Comma-delimited list of URLs (takes precedence over url)
+    urls: ""
+    # -- Subdirectory within the data volume to extract into
+    subpath: ""
+    # -- Extra tar arguments (e.g. "--strip-components=1")
+    tarArgs: ""
+    # -- Compression format: auto, none, gzip, bzip2, xz, zstd, lz4
+    compression: "auto"
+    # -- Remove subpath directory before extraction
+    rmSubpath: "true"
+    # -- Max retry attempts
+    maxRetries: 10
+    # -- Minutes of no progress before watchdog kills curl
+    stallMinutes: 3
+    # -- Optional SHA-256 checksum of the snapshot archive
+    checksumSha256: ""
+    # -- Comma-delimited SHA-256 checksums (positional match with urls)
+    checksumsSha256: ""
+    # -- Extra environment variables to pass to the init container
+    extraEnv: []
+
+  initChownData:
+    enabled: true
+    image:
+      repository: busybox
+      tag: "1.36.1"
+      pullPolicy: IfNotPresent
+
+  # -- Startup probe configuration
+  # Protects slow-starting nodes during initial sync/bootstrap.
+  # Default window: failureThreshold(2880) × periodSeconds(30s) = 24 hours.
+  # Liveness and readiness probes are suppressed until startup succeeds.
+  startupProbe:
+    enabled: true
+    tcpSocket:
+      port: http-rpc
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 2880
+
+  # -- Readiness probe configuration
+  # Only active after startupProbe succeeds.
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ext/health
+      port: http-rpc
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+
+  # -- Liveness probe configuration
+  # Only active after startupProbe succeeds.
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /ext/health
+      port: http-rpc
+    initialDelaySeconds: 30
+    periodSeconds: 60
+    timeoutSeconds: 5
+    failureThreshold: 5
+
+# -- AvalancheGo node configuration (JSON format, mounted as config.json)
+# See https://build.avax.network/docs/nodes/configure/configs-flags
+# NOTE: http-port and staking-port are injected automatically from
+# avalanche.service.ports to prevent drift. Do not set them here.
+# @default -- See values below
+nodeConfig:
+  http-host: "0.0.0.0"
+  log-level: "info"
+  log-display-level: "info"
+  api-admin-enabled: false
+  api-health-enabled: true
+  api-info-enabled: true
+  api-metrics-enabled: true
+  index-enabled: false
+  db-type: "leveldb"
+
+# -- C-Chain specific configuration (JSON format, mounted as C/config.json)
+# @default -- See values below
+cChainConfig:
+  snowman-api-enabled: false
+  eth-apis:
+    - "eth"
+    - "eth-filter"
+    - "net"
+    - "web3"
+    - "internal-eth"
+    - "internal-blockchain"
+    - "internal-transaction"
+    - "internal-tx-pool"
+    - "internal-account"
+  metrics-enabled: true
+  pruning-enabled: true
+  state-sync-enabled: true
+
+# -- Extra chain configs keyed by chain alias or ID
+# Each entry is mounted as <key>/config.json under the chain config directory
+extraChainConfigs: {}
+  # X: {}
+  # P: {}
+
+prometheus:
+  serviceMonitor:
+    enabled: false
+    interval: "30s"
+    scrapeTimeout: "10s"
+    labels: {}

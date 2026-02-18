@@ -1,0 +1,17 @@
+apiVersion: v2
+name: avalanche
+description: Deploy and scale AvalancheGo RPC nodes inside Kubernetes
+type: application
+version: 0.1.0
+appVersion: "v1.14.1"
+keywords:
+  - avalanche
+  - avalanchego
+  - blockchain
+  - rpc
+  - web3
+home: https://www.avax.network
+sources:
+  - https://github.com/ava-labs/avalanchego
+maintainers:
+  - name: vincepetoscia

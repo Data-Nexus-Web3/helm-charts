@@ -1,0 +1,278 @@
+{{- $values := $.Values.avalanche }}
+{{- $componentName := "avalanche" }}
+{{- $componentLabel := include "avalanche.componentLabelFor" $componentName }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "avalanche.fullname" . }}-{{ $componentName }}
+  labels:
+    {{- include "avalanche.labels" . | nindent 4 }}
+    {{- $componentLabel | nindent 4 }}
+spec:
+  serviceName: {{ include "avalanche.fullname" . }}-{{ $componentName }}-headless
+  replicas: {{ include "avalanche.replicas" $values }}
+  selector:
+    matchLabels:
+      {{- include "avalanche.selectorLabels" . | nindent 6 }}
+      {{- $componentLabel | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with $values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "avalanche.selectorLabels" . | nindent 8 }}
+        {{- $componentLabel | nindent 8 }}
+        {{- with $values.extraLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "avalanche.serviceAccountName" . }}
+      {{- with $values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $values.terminationGracePeriodSeconds }}
+      initContainers:
+        {{- if $values.p2pNodePort.enabled }}
+        - name: init-nodeport
+          image: "{{ $values.p2pNodePort.initContainer.image.repository }}:{{ $values.p2pNodePort.initContainer.image.tag }}"
+          imagePullPolicy: {{ $values.p2pNodePort.initContainer.image.pullPolicy }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          command:
+            - sh
+            - -c
+            - |
+              set -ex
+              export EXTERNAL_PORT=$(kubectl get services -l "pod=${POD_NAME},type=p2p" -o jsonpath='{.items[0].spec.ports[0].nodePort}')
+              export EXTERNAL_IP=$(kubectl get nodes "${NODE_NAME}" -o jsonpath='{.status.addresses[?(@.type=="ExternalIP")].address}')
+              export EXTERNAL_IP=${EXTERNAL_IP:-$(curl -s https://v4.ident.me)}
+              echo "EXTERNAL_IP=${EXTERNAL_IP}" > /env/init-nodeport
+              echo "EXTERNAL_PORT=${EXTERNAL_PORT}" >> /env/init-nodeport
+          volumeMounts:
+            - name: env-nodeport
+              mountPath: /env
+        {{- end }}
+        {{- if $values.snapshotRestore.enabled }}
+        - name: snapshot-restore
+          image: "{{ $values.snapshotRestore.image.repository }}:{{ $values.snapshotRestore.image.tag }}"
+          imagePullPolicy: {{ $values.snapshotRestore.image.pullPolicy }}
+          env:
+            - name: RESTORE_SNAPSHOT
+              value: "true"
+            {{- if $values.snapshotRestore.urls }}
+            - name: URLS
+              value: {{ $values.snapshotRestore.urls | quote }}
+            {{- else }}
+            - name: URL
+              value: {{ required "avalanche.snapshotRestore.url is required when avalanche.snapshotRestore.enabled=true and avalanche.snapshotRestore.urls is empty" $values.snapshotRestore.url | quote }}
+            {{- end }}
+            - name: DIR
+              value: "/data"
+            {{- if $values.snapshotRestore.subpath }}
+            - name: SUBPATH
+              value: {{ $values.snapshotRestore.subpath | quote }}
+            {{- end }}
+            {{- if $values.snapshotRestore.tarArgs }}
+            - name: TAR_ARGS
+              value: {{ $values.snapshotRestore.tarArgs | quote }}
+            {{- end }}
+            - name: COMPRESSION
+              value: {{ $values.snapshotRestore.compression | quote }}
+            - name: RM_SUBPATH
+              value: {{ $values.snapshotRestore.rmSubpath | quote }}
+            - name: MAX_RETRIES
+              value: {{ $values.snapshotRestore.maxRetries | quote }}
+            - name: STALL_MINUTES
+              value: {{ $values.snapshotRestore.stallMinutes | quote }}
+            {{- if $values.snapshotRestore.checksumSha256 }}
+            - name: CHECKSUM_SHA256
+              value: {{ $values.snapshotRestore.checksumSha256 | quote }}
+            {{- end }}
+            {{- if $values.snapshotRestore.checksumsSha256 }}
+            - name: CHECKSUMS_SHA256
+              value: {{ $values.snapshotRestore.checksumsSha256 | quote }}
+            {{- end }}
+            {{- with $values.snapshotRestore.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+        {{- end }}
+        {{- if $values.initChownData.enabled }}
+        - name: init-chown-data
+          image: "{{ $values.initChownData.image.repository }}:{{ $values.initChownData.image.tag }}"
+          imagePullPolicy: {{ $values.initChownData.image.pullPolicy }}
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+          command: ["chown", "-R", "0:0", "/data"]
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+        {{- end }}
+      containers:
+        - name: {{ $componentName }}
+          image: "{{ $.Values.image.repository }}:{{ include "avalanche.imageTag" $ }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              {{- if $values.p2pNodePort.enabled }}
+              . /env/init-nodeport
+              {{- end }}
+              exec /avalanchego/build/avalanchego \
+                --config-file=/config/node-config.json \
+                --network-id={{ $values.networkId }} \
+                --data-dir=/data \
+                --chain-config-dir=/chain-config \
+                {{- if $values.p2pNodePort.enabled }}
+                --public-ip=${EXTERNAL_IP} \
+                --staking-port=${EXTERNAL_PORT} \
+                {{- end }}
+                {{- range $values.extraArgs }}
+                {{ . }} \
+                {{- end }}
+                ;
+          ports:
+            - name: http-rpc
+              containerPort: {{ include "avalanche.httpPort" $ }}
+              protocol: TCP
+            - name: http-staking
+              containerPort: {{ include "avalanche.stakingPort" $ }}
+              protocol: TCP
+            - name: tcp-p2p
+              containerPort: {{ include "avalanche.p2pPort" $values }}
+              protocol: TCP
+            - name: udp-p2p
+              containerPort: {{ include "avalanche.p2pPort" $values }}
+              protocol: UDP
+          {{- if $values.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: {{ $values.startupProbe.tcpSocket.port }}
+            periodSeconds: {{ $values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ $values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ $values.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- if $values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ $values.readinessProbe.httpGet.path }}
+              port: {{ $values.readinessProbe.httpGet.port }}
+            initialDelaySeconds: {{ $values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ $values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ $values.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- if $values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ $values.livenessProbe.httpGet.path }}
+              port: {{ $values.livenessProbe.httpGet.port }}
+            initialDelaySeconds: {{ $values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ $values.livenessProbe.failureThreshold }}
+          {{- end }}
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+            - name: config
+              mountPath: /config
+            - name: chain-config
+              mountPath: /chain-config/C
+              subPath: c-chain
+            {{- range $chain, $config := $.Values.extraChainConfigs }}
+            - name: chain-config
+              mountPath: /chain-config/{{ $chain }}
+              subPath: {{ $chain | lower }}
+            {{- end }}
+            {{- if $values.p2pNodePort.enabled }}
+            - name: env-nodeport
+              mountPath: /env
+            {{- end }}
+          {{- with $values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "avalanche.fullname" . }}-config
+            items:
+              - key: node-config.json
+                path: node-config.json
+        - name: chain-config
+          configMap:
+            name: {{ include "avalanche.fullname" . }}-config
+            items:
+              - key: c-chain-config.json
+                path: c-chain/config.json
+              {{- range $chain, $config := $.Values.extraChainConfigs }}
+              - key: {{ $chain }}-config.json
+                path: {{ $chain | lower }}/config.json
+              {{- end }}
+        {{- if $values.p2pNodePort.enabled }}
+        - name: env-nodeport
+          emptyDir: {}
+        {{- end }}
+      {{- with $values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or $values.affinity $values.affinityPresets.antiAffinityByHostname }}
+      affinity:
+        {{- with $values.affinity }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if $values.affinityPresets.antiAffinityByHostname }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: "kubernetes.io/hostname"
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "avalanche.name" . }}
+                    - key: app.kubernetes.io/instance
+                      operator: In
+                      values:
+                        - {{ .Release.Name }}
+                    - key: app.kubernetes.io/component
+                      operator: In
+                      values:
+                        - {{ $componentName }}
+        {{- end }}
+      {{- end }}
+      {{- with $values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+        labels:
+          {{- include "avalanche.selectorLabels" . | nindent 10 }}
+          {{- $componentLabel | nindent 10 }}
+      spec:
+        {{- toYaml $values.volumeClaimSpec | nindent 8 }}
