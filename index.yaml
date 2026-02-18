@@ -22,4 +22,27 @@ entries:
     urls:
     - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/avalanche-0.1.0/avalanche-0.1.0.tgz
     version: 0.1.0
-generated: "2026-02-18T06:16:51.721629979Z"
+  reth:
+  - apiVersion: v2
+    appVersion: v1.11.0
+    created: "2026-02-18T07:04:53.938801225Z"
+    description: Deploy and scale Reth Ethereum execution client nodes inside Kubernetes
+    digest: ac597e61f9ef489786d18efa21303acce391aa868b260977b031df8570f89c93
+    home: https://reth.rs
+    keywords:
+    - reth
+    - ethereum
+    - execution-client
+    - blockchain
+    - rpc
+    - web3
+    maintainers:
+    - name: vincepetoscia
+    name: reth
+    sources:
+    - https://github.com/paradigmxyz/reth
+    type: application
+    urls:
+    - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/reth-0.1.0/reth-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-02-18T07:04:53.938831171Z"
