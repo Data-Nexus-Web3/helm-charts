@@ -1,0 +1,49 @@
+{{- $values := $.Values.reth }}
+{{- $componentName := "reth" }}
+{{- $componentLabel := include "reth.componentLabelFor" $componentName }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "reth.fullname" . }}-scripts
+  labels:
+    {{- include "reth.labels" . | nindent 4 }}
+    {{- $componentLabel | nindent 4 }}
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+    set -e
+    {{- if $values.p2pNodePort.enabled }}
+    . /env/init-nodeport
+    {{- end }}
+    exec reth node \
+      --chain={{ $values.chain }} \
+      --datadir=/data \
+      {{- if $values.fullNode }}
+      --full \
+      {{- end }}
+      {{- if $.Values.httpRpc.enabled }}
+      --http \
+      --http.addr={{ $.Values.httpRpc.addr }} \
+      --http.port={{ include "reth.httpPort" $ }} \
+      --http.api={{ join "," $.Values.httpRpc.api }} \
+      {{- end }}
+      {{- if $.Values.wsRpc.enabled }}
+      --ws \
+      --ws.addr={{ $.Values.wsRpc.addr }} \
+      --ws.port={{ include "reth.wsPort" $ }} \
+      --ws.api={{ join "," $.Values.wsRpc.api }} \
+      {{- end }}
+      --authrpc.addr={{ $.Values.authRpc.addr }} \
+      --authrpc.port={{ include "reth.authRpcPort" $ }} \
+      --authrpc.jwtsecret=/secrets/jwt.hex \
+      {{- if $.Values.metrics.enabled }}
+      --metrics={{ $.Values.metrics.addr }}:{{ include "reth.metricsPort" $ }} \
+      {{- end }}
+      {{- if $values.p2pNodePort.enabled }}
+      --nat=extip:${EXTERNAL_IP} \
+      --port=${EXTERNAL_PORT} \
+      {{- end }}
+      {{- range $values.extraArgs }}
+      {{ . }} \
+      {{- end }}
+      ;

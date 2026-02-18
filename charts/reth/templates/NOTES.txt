@@ -1,0 +1,42 @@
+Reth Ethereum execution client has been deployed!
+
+Chain: {{ .Values.reth.chain }}
+Mode:  {{ if .Values.reth.fullNode }}full (pruned){{ else }}archive{{ end }}
+Image: {{ .Values.image.repository }}:{{ include "reth.imageTag" . }}
+
+{{- if .Values.consensus.enabled }}
+An in-pod Lighthouse consensus client is enabled.
+
+{{- if and .Values.consensus.service.enabled .Values.consensus.beaconApi.enabled }}
+Beacon API endpoint:
+  http://{{ include "reth.fullname" . }}-consensus:{{ .Values.consensus.beaconApi.port }}
+{{- end }}
+{{- else }}
+IMPORTANT: Reth requires a consensus client (e.g. Lighthouse, Prysm, Lodestar)
+to sync. Connect your CL to the Engine API:
+{{- end }}
+
+  Engine API endpoint: http://{{ include "reth.fullname" . }}-reth:{{ include "reth.authRpcPort" . }}
+
+  JWT secret (share with your consensus client):
+    kubectl get secret -n {{ .Release.Namespace }} {{ include "reth.fullname" . }}-jwt -o jsonpath='{.data.jwt\.hex}' | base64 -d
+
+Get the JSON-RPC endpoint:
+{{- if contains "NodePort" .Values.reth.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "reth.fullname" . }}-reth)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "RPC URL: http://$NODE_IP:$NODE_PORT"
+{{- else if contains "LoadBalancer" .Values.reth.service.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "reth.fullname" . }}-reth --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "RPC URL: http://$SERVICE_IP:{{ include "reth.httpPort" . }}"
+{{- else }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "reth.fullname" . }}-reth {{ include "reth.httpPort" . }}:{{ include "reth.httpPort" . }}
+  echo "RPC URL: http://127.0.0.1:{{ include "reth.httpPort" . }}"
+{{- end }}
+
+Check sync status:
+  kubectl exec -n {{ .Release.Namespace }} {{ include "reth.fullname" . }}-reth-0 -- \
+    wget -qO- --header='Content-Type: application/json' \
+    --post-data='{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' \
+    http://localhost:{{ include "reth.httpPort" . }}

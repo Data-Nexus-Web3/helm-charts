@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "reth.fullname" . }}-test-connection"
+  labels:
+    {{- include "reth.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox:1.36.1
+      command: ['wget']
+      args: ['-qO-', '--timeout=10', '--header=Content-Type: application/json', '--post-data={"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}', 'http://{{ include "reth.fullname" . }}-reth:{{ include "reth.httpPort" . }}']
+  restartPolicy: Never

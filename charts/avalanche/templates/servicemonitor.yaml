@@ -1,0 +1,25 @@
+{{- if .Values.prometheus.serviceMonitor.enabled }}
+{{- $componentName := "avalanche" }}
+{{- $componentLabel := include "avalanche.componentLabelFor" $componentName }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "avalanche.fullname" . }}-{{ $componentName }}
+  labels:
+    {{- include "avalanche.labels" . | nindent 4 }}
+    {{- $componentLabel | nindent 4 }}
+    {{- with .Values.prometheus.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "avalanche.selectorLabels" . | nindent 6 }}
+      {{- $componentLabel | nindent 6 }}
+      serviceMonitorTarget: "true"
+  endpoints:
+    - port: http-rpc
+      path: /ext/metrics
+      interval: {{ .Values.prometheus.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.prometheus.serviceMonitor.scrapeTimeout }}
+{{- end }}
