@@ -1,0 +1,18 @@
+apiVersion: v2
+name: reth
+description: Deploy and scale Reth Ethereum execution client nodes inside Kubernetes
+type: application
+version: 0.1.0
+appVersion: "v1.11.0"
+keywords:
+  - reth
+  - ethereum
+  - execution-client
+  - blockchain
+  - rpc
+  - web3
+home: https://reth.rs
+sources:
+  - https://github.com/paradigmxyz/reth
+maintainers:
+  - name: vincepetoscia

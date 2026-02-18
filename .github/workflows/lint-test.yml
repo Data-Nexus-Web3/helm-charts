@@ -25,6 +25,12 @@ jobs:
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.7.0
 
+      - name: Generate chart docs
+        uses: losisin/helm-docs-github-action@v1
+        with:
+          chart-search-root: charts
+          fail-on-diff: true
+
       - name: List changed charts
         id: list-changed
         run: |
