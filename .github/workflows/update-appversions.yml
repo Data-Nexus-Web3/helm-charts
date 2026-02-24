@@ -72,11 +72,14 @@ jobs:
             new_version="${major}.${minor}.$((patch + 1))"
             sed -i "s/^version: .*/version: ${new_version}/" "$chart_yaml"
 
+            # Update README chart table
+            bash scripts/update-available-charts.sh
+
             # Create branch and PR
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git checkout -b "$branch"
-            git add "$chart_yaml"
+            git add "$chart_yaml" README.md
             git commit -m "chore(${chart}): bump appVersion to ${latest}"
             git push origin "$branch"
 
