@@ -24,6 +24,26 @@ entries:
     version: 0.1.0
   reth:
   - apiVersion: v2
+    appVersion: v1.11.1
+    created: "2026-02-24T23:07:01.506203075Z"
+    description: Deploy and scale Reth Ethereum execution client nodes inside Kubernetes
+    digest: c63a4581008dd294ccec4c61664bd3d47daff37b218e2be430f4d1ce20a2fcb3
+    home: https://reth.rs
+    keywords:
+    - reth
+    - ethereum
+    - execution-client
+    - blockchain
+    - rpc
+    - web3
+    name: reth
+    sources:
+    - https://github.com/paradigmxyz/reth
+    type: application
+    urls:
+    - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/reth-0.1.1/reth-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
     appVersion: v1.11.0
     created: "2026-02-18T07:04:53.938801225Z"
     description: Deploy and scale Reth Ethereum execution client nodes inside Kubernetes
@@ -45,4 +65,4 @@ entries:
     urls:
     - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/reth-0.1.0/reth-0.1.0.tgz
     version: 0.1.0
-generated: "2026-02-18T07:04:53.938831171Z"
+generated: "2026-02-24T23:07:01.506214161Z"
