@@ -1,0 +1,70 @@
+{{- $values := $.Values.fullMode }}
+{{- $componentName := "grpc" }}
+{{- $componentLabel := include "firehose-ethereum.componentLabelFor" $componentName }}
+{{- if and (eq .Values.mode "full") $values.components.grpc.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-firehose-{{ $componentName }}
+  labels:
+    {{- include "firehose-ethereum.labels" . | nindent 4 }}
+    {{- $componentLabel | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "firehose-ethereum.selectorLabels" . | nindent 6 }}
+      {{- $componentLabel | nindent 6 }}
+  replicas: {{ $values.components.grpc.replicas }}
+  template:
+    metadata:
+      {{- with $values.components.grpc.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "firehose-ethereum.selectorLabels" . | nindent 8 }}
+        {{- $componentLabel | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "firehose-ethereum.serviceAccountName" . }}
+      {{- with $values.components.grpc.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.components.grpc.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.components.grpc.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $componentName }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["fireeth"]
+          args: ["start", "-c", "/config/config.yaml"]
+          {{- include "firehose-ethereum.envVars" (dict "context" . "component" $values.components.grpc) | nindent 10 }}
+          {{- with $values.components.grpc.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: grpc
+              containerPort: 10015
+              protocol: TCP
+            - name: metrics
+              containerPort: 9102
+              protocol: TCP
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Release.Name }}-firehose-{{ $componentName }}-config
+{{- end }}

@@ -1,0 +1,736 @@
+# Default values for firehose.
+# This is a YAML-formatted file.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # -- Image for Firehose
+  repository: ghcr.io/streamingfast/go-ethereum
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag
+  # @default -- Chart.appVersion
+  tag: ""
+
+# -- Pull secrets required to fetch the Image
+imagePullSecrets: []
+
+# -- ServiceAccount configuration
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: false
+  # -- Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- Additional labels to add to the service account
+  labels: {}
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# -- Secret name containing S3/object storage credentials. Must contain keys: access-key, secret-key
+s3CredentialsSecret: []
+
+
+commonConfig: 
+  common-live-blocks-addr: ""
+  common-merged-blocks-store-url: ""
+  common-one-block-store-url: ""
+  common-forked-blocks-store-url: ""
+  common-auto-mem-limit-percent: 90
+  common-system-shutdown-signal-delay: 10s
+  common-index-block-sizes: 10000
+
+# -- Firehose operating mode
+# Options:
+#   - "full": Complete Firehose stack with all components (reader, merger, relayer, etc.)
+#   - "chunk": Lightweight mode for specific block ranges
+mode: full
+
+fullMode:
+  # -- Storage configuration for full mode
+  storage:
+    lighthouse:
+      size: 400Gi
+    readerNode:
+      size: 4Ti
+    storageClass: ""
+
+  # Component-specific configurations for full mode
+  components:
+
+    lighthouse:
+      # -- Enable Lighthouse for beacon chain synchronization
+      enabled: true
+      
+      # -- Number of replicas for the Lighthouse beacon node
+      replicas: 1
+
+      # -- Image configuration for Lighthouse
+      image:
+        repository: sigp/lighthouse
+        pullPolicy: IfNotPresent
+        tag: "v8.1.3"
+
+      # -- Lighthouse beacon node configuration
+      config:
+        # -- Ethereum network (mainnet, sepolia, holesky)
+        network: mainnet
+        # -- Checkpoint sync URL for faster initial sync
+        checkpointSyncUrl: "https://sync-mainnet.beaconcha.in"
+        # -- Remove old blob data to save space (recommended for non-archive nodes)
+        pruneBlobs: true
+
+      # -- Additional arguments to pass to lighthouse beacon_node
+      extraArgs: []
+      # - --suggested-fee-recipient=0x...
+      # - --builder=https://builder-api.example.com
+
+      # -- Resource requests and limits for lighthouse beacon node
+      resources: {}
+        # limits:
+        #   cpu: 4000m
+        #   memory: 16Gi
+        # requests:
+        #   cpu: 2000m
+        #   memory: 8Gi
+
+      # -- Affinity rules for lighthouse beacon node pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - beacon
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to lighthouse beacon node pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "5054"
+
+      # -- Node selector for lighthouse beacon node pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for lighthouse beacon node pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+    
+    opNode:
+      # -- Enable OP Node for Optimism L2 execution layer synchronization
+      enabled: false
+      
+      # -- Number of replicas for the OP Node
+      replicas: 1
+
+      # -- Image configuration for OP Node
+      image:
+        repository: ghcr.io/streamingfast/go-ethereum
+        pullPolicy: IfNotPresent
+        tag: "optimism-v1.101603.1"
+
+      # -- OP Node configuration
+      config:
+        # -- Optimism network to sync (op-mainnet, base-mainnet, etc.)
+        network: op-mainnet
+        # -- Ethereum L1 RPC endpoint
+        l1: https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID
+        # -- Ethereum L1 beacon chain endpoint
+        l1Beacon: https://sync-mainnet.beaconcha.in
+        # -- Ethereum L1 beacon chain archiver endpoint
+        l1BeaconArchiver: https://sync-mainnet.beaconcha.in
+        # -- L1 RPC kind (standard, erigon, etc.)
+        l1RpcKind: standard
+        # -- Trust L1 RPC without verification
+        l1TrustRpc: true
+
+      # -- Additional arguments to pass to op-node
+      extraArgs: []
+      # - --additional-flag=value
+
+      # -- Resource requests and limits for op-node
+      resources: {}
+        # limits:
+        #   cpu: 4000m
+        #   memory: 16Gi
+        # requests:
+        #   cpu: 2000m
+        #   memory: 8Gi
+
+      # -- Affinity rules for op-node pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - op-node
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to op-node pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "7300"
+
+      # -- Node selector for op-node pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for op-node pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+    substreams:
+      # -- Enable Substreams Tier 1
+      enabled: false
+      # -- Number of replicas for the Substreams component
+      replicas: 1
+
+      # -- gRPC server configuration
+      ingress:
+        enabled: false
+        host: "substreams.example.com"
+        ingressClassName: "nginx"
+        annotations: []
+        #  cert-manager.io/cluster-issuer: letsencrypt-production
+
+      # -- Extra environment variables for substreams component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Extra ConfigMaps to mount as volumes
+      # Each entry can either reference an existing configmap (name only)
+      # or create a new one with data (name + data + mountPath)
+      extraConfigMaps: []
+      # Example 1: Mount an existing ConfigMap
+      # - name: my-existing-config
+      #   mountPath: /extra-config
+      #
+      # Example 2: Create and mount a new ConfigMap with custom data
+      # - name: my-json-config
+      #   mountPath: /config/json
+      #   data:
+      #     config.json: |
+      #       {
+      #         "key": "value",
+      #         "nested": {
+      #           "field": "data"
+      #         }
+      #       }
+      #     settings.json: |
+      #       {
+      #         "enabled": true
+      #       }
+
+      # -- Resource requests and limits for substreams tier 1
+      resources: {}
+        # limits:
+        #   cpu: 4000m
+        #   memory: 16Gi
+        # requests:
+        #   cpu: 2000m
+        #   memory: 8Gi
+
+      # -- Affinity rules for substreams tier 1 pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - substreams-tier-1
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to substreams tier 1 pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9102"
+
+      # -- Node selector for substreams tier 1 pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for substreams tier 1 pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+      config:
+        # -- Substreams arguments
+        advertise-chain-name: mainnet
+        substreams-block-execution-timeout: 10m
+        substreams-state-store-default-tag: s3
+        substreams-rpc-endpoints: ""
+        substreams-state-store-url: ""
+        substreams-tier1-quicksave-store: ""
+        substreams-tier1-subrequests-endpoint: ""
+        substreams-tier1-active-requests-hard-limit: 50
+        substreams-tier1-active-requests-soft-limit: 45
+
+       
+    grpc:
+      # -- Enable the Firehose gRPC server
+      enabled: true
+      # -- Number of replicas for the gRPC server
+      replicas: 1
+
+      # -- gRPC server configuration
+      ingress:
+        enabled: false
+        host: "firehose.example.com"
+        ingressClassName: ""  # optional
+        annotations: []
+        # cert-manager.io/cluster-issuer: letsencrypt-production
+
+      # -- Extra environment variables for grpc component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Resource requests and limits for grpc server
+      resources: {}
+        # limits:
+        #   cpu: 2000m
+        #   memory: 8Gi
+        # requests:
+        #   cpu: 1000m
+        #   memory: 4Gi
+
+      # -- Affinity rules for grpc server pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - grpc
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to grpc server pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9102"
+
+      # -- Node selector for grpc server pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for grpc server pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+      config:
+        # -- gRPC server arguments
+        advertise-chain-name: mainnet
+        firehose-rate-limit-bucket-size: 10
+        firehose-rate-limit-bucket-fill-rate: 2s
+
+    reader:
+      # -- Enable the Firehose reader node
+      enabled: true
+      # -- Number of replicas for the reader node
+      replicas: 1
+
+      # -- Extra environment variables for reader component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Resource requests and limits for reader node
+      resources: {}
+        # limits:
+        #   cpu: 8000m
+        #   memory: 32Gi
+        # requests:
+        #   cpu: 4000m
+        #   memory: 16Gi
+
+      # -- Affinity rules for reader node pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - reader
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to reader node pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9102"
+
+      # -- Node selector for reader node pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for reader node pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+      config:
+        # -- Execution binary path
+        reader-node-path: "/app/geth"
+        reader-node-arguments: "--networkid=1 --ipcpath={data-dir}/reader/ipc --port=30302 --http --http.api=eth,net,web3 --http.port=8545 --http.addr=0.0.0.0 --http.vhosts=* --authrpc.port=8551 --authrpc.addr=0.0.0.0 --authrpc.vhosts=* --authrpc.jwtsecret=/jwt/jwt.hex --cache=8192 --syncmode=full --vmtrace=firehose"
+        reader-node-blocks-chan-capacity: 5000
+        reader-node-readiness-max-latency: 1200s
+        reader-node-firehose-plaintext: true
+    
+    merger:
+      # -- Enable the Firehose merger node
+      enabled: true
+      # -- Number of replicas for the merger node
+      replicas: 1
+
+      # -- Extra environment variables for merger component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Resource requests and limits for merger node
+      resources: {}
+        # limits:
+        #   cpu: 4000m
+        #   memory: 16Gi
+        # requests:
+        #   cpu: 2000m
+        #   memory: 8Gi
+
+      # -- Affinity rules for merger node pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - merger
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to merger node pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9102"
+
+      # -- Node selector for merger node pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for merger node pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+      config: 
+        # -- Merger node arguments
+        merger-time-between-store-lookups: 10s
+        merger-delete-threads: 100
+
+    relayer:
+      # -- Enable the Firehose relayer node
+      enabled: true
+      # -- Number of replicas for the relayer node
+      replicas: 1
+
+      # -- Extra environment variables for relayer component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Resource requests and limits for relayer node
+      resources: {}
+        # limits:
+        #   cpu: 2000m
+        #   memory: 8Gi
+        # requests:
+        #   cpu: 1000m
+        #   memory: 4Gi
+
+      # -- Affinity rules for relayer node pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - relayer
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to relayer node pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9102"
+
+      # -- Node selector for relayer node pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for relayer node pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+      config:
+        # -- Relayer node arguments
+        relayer-max-source-latency: 1h
+
+    indexer:
+      # -- Enable the Firehose indexer node
+      enabled: true
+      # -- Number of replicas for the indexer node
+      replicas: 1
+
+      # -- Extra environment variables for indexer component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Resource requests and limits for indexer node
+      resources: {}
+        # limits:
+        #   cpu: 2000m
+        #   memory: 8Gi
+        # requests:
+        #   cpu: 1000m
+        #   memory: 4Gi
+
+      # -- Affinity rules for indexer node pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: app.kubernetes.io/component
+        #         operator: In
+        #         values:
+        #         - indexer
+        #     topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to indexer node pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9102"
+
+      # -- Node selector for indexer node pod scheduling
+      nodeSelector: {}
+        # disktype: ssd
+        # node-role: firehose
+
+      # -- Tolerations for indexer node pod scheduling
+      tolerations: []
+        # - key: "dedicated"
+        #   operator: "Equal"
+        #   value: "firehose"
+        #   effect: "NoSchedule"
+
+      config:
+        # -- Indexer arguments
+        log-to-file: false
+
+chunkMode:
+  # -- Mode to use in chunk processing
+  # Options:
+  #   - "firehose": Remote firehose for block data
+  #   - "poller": Remote rpc for block data
+  method: "firehose"
+
+  # -- Storage configuration for chunk mode
+  storage:
+    readerNode:
+      size: 50Mi
+    storageClass: ""
+
+  chunkConfig:
+    # -- Starting block number (inclusive)
+    startBlock: 0
+    # -- Ending block number (exclusive)
+    stopBlock: 100000
+    # -- Number of workers to split block range across
+    workers: 4
+
+  components:
+    rpcPoller:
+      # -- RPC endpoint to poll for blocks
+      endpoint: "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
+      
+      # -- Extra environment variables for rpcPoller component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+      # -- Resource requests and limits for rpc poller
+      resources: {}
+        # limits:
+        #   cpu: 2000m
+        #   memory: 8Gi
+        # requests:
+        #   cpu: 1000m
+        #   memory: 4Gi
+
+      # -- Affinity rules for rpc poller pod scheduling
+      affinity: {}
+        # podAntiAffinity:
+        #   preferredDuringSchedulingIgnoredDuringExecution:
+        #   - weight: 100
+        #     podAffinityTerm:
+        #       labelSelector:
+        #         matchExpressions:
+        #         - key: app
+        #           operator: In
+        #           values:
+        #           - firehose-chunk
+        #       topologyKey: kubernetes.io/hostname
+
+      # -- Annotations to add to rpc poller pods
+      podAnnotations: {}
+        # prometheus.io/scrape: "true"
+
+    remoteFirehose:
+      # -- Firehose endpoint to fetch processed block data
+      endpoint: "https://firehose.example.com/ethereum"
+      
+      # -- Extra environment variables for remoteFirehose component
+      extraEnvs: []
+      # - name: CUSTOM_VAR
+      #   value: "custom_value"
+      # - name: SECRET_VAR
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: my-secret
+      #       key: secret-key
+      # - name: CONFIG_VAR
+      #   valueFrom:
+      #     configMapKeyRef:
+      #       name: my-configmap
+      #       key: config-key
+
+    reader:
+      # -- Enable the Firehose reader node
+      enabled: true
+      # -- Reader node configuration
+      config:
+        reader-node-blocks-chan-capacity: 5000
+        reader-node-readiness-max-latency: 1200s
+        reader-node-firehose-plaintext: true
+    
+    merger:
+      # -- Enable the Firehose merger node
+      enabled: true
+      # -- Merger node configuration
+      config:
+        merger-time-between-store-lookups: 10s
+        merger-delete-threads: 100
+
+    
