@@ -22,6 +22,22 @@ entries:
     urls:
     - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/avalanche-0.1.0/avalanche-0.1.0.tgz
     version: 0.1.0
+  firehose-ethereum:
+  - annotations:
+      lookupName: ghcr.io/streamingfast/go-ethereum
+    apiVersion: v2
+    appVersion: geth-v1.16.9-fh3.0
+    created: "2026-06-09T04:04:09.982757313Z"
+    description: A Helm chart for Kubernetes
+    digest: 0ec18ba5971f88c0430e084c156123b8b4dda936f8a70a2c10e601c1899963ee
+    keywords:
+    - firehose
+    - substreams
+    name: firehose-ethereum
+    type: application
+    urls:
+    - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/firehose-ethereum-1.8.0/firehose-ethereum-1.8.0.tgz
+    version: 1.8.0
   reth:
   - apiVersion: v2
     appVersion: v1.11.3
@@ -85,4 +101,4 @@ entries:
     urls:
     - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/reth-0.1.0/reth-0.1.0.tgz
     version: 0.1.0
-generated: "2026-03-31T22:56:44.743261182Z"
+generated: "2026-06-09T04:04:09.982771834Z"
