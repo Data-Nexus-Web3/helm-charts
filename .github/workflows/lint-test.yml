@@ -53,7 +53,7 @@ jobs:
         run: |
           while IFS= read -r chart; do
             [[ -n "$chart" ]] || continue
-            helm-docs --chart-search-root charts --chart-to-generate "$chart"
+            (cd "$chart" && helm-docs)
           done <<< "$CHANGED_CHARTS"
 
       - name: Generate root README chart table
@@ -70,7 +70,7 @@ jobs:
           done <<< "$CHANGED_CHARTS"
           if ! git diff --exit-code -- "${paths[@]}"; then
             echo "Generated chart docs or README.md available charts table are out of date."
-            echo "Run: helm-docs --chart-search-root charts --chart-to-generate <chart-path>"
+            echo "Run: (cd <chart-path> && helm-docs)"
             echo "Run: ./scripts/update-available-charts.sh"
             exit 1
           fi
