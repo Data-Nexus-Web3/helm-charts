@@ -1,0 +1,16 @@
+apiVersion: v2
+name: envio-indexer
+description: Run an Envio HyperIndex indexer with Hasura and an external Postgres database
+type: application
+version: 0.1.0
+appVersion: "v3.2.1"
+keywords:
+  - envio
+  - hyperindex
+  - hasura
+  - indexer
+home: https://envio.dev
+sources:
+  - https://docs.envio.dev/docs/HyperIndex/self-hosting
+  - https://docs.envio.dev/docs/HyperIndex/overview
+  - https://www.npmjs.com/package/envio

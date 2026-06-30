@@ -1,6 +1,6 @@
 # firehose-ethereum
 
-![Version: 1.7.1](https://img.shields.io/badge/Version-1.7.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: geth-v1.16.9-fh3.0](https://img.shields.io/badge/AppVersion-geth--v1.16.9--fh3.0-informational?style=flat-square)
+![Version: 1.8.0](https://img.shields.io/badge/Version-1.8.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: geth-v1.16.9-fh3.0](https://img.shields.io/badge/AppVersion-geth--v1.16.9--fh3.0-informational?style=flat-square)
 
 A Helm chart for Kubernetes
 
@@ -18,7 +18,7 @@ A Helm chart for Kubernetes
 | chunkMode.components.remoteFirehose.endpoint | string | `"https://firehose.example.com/ethereum"` | Firehose endpoint to fetch processed block data |
 | chunkMode.components.remoteFirehose.extraEnvs | list | `[]` | Extra environment variables for remoteFirehose component |
 | chunkMode.components.rpcPoller.affinity | object | `{}` | Affinity rules for rpc poller pod scheduling |
-| chunkMode.components.rpcPoller.endpoint | string | `"https://YOUR_ETHEREUM_ENDPOINT"` | RPC endpoint to poll for blocks |
+| chunkMode.components.rpcPoller.endpoint | string | `"https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"` | RPC endpoint to poll for blocks |
 | chunkMode.components.rpcPoller.extraEnvs | list | `[]` | Extra environment variables for rpcPoller component |
 | chunkMode.components.rpcPoller.podAnnotations | object | `{}` | Annotations to add to rpc poller pods |
 | chunkMode.components.rpcPoller.resources | object | `{}` | Resource requests and limits for rpc poller |
@@ -31,9 +31,10 @@ A Helm chart for Kubernetes
 | commonConfig.common-merged-blocks-store-url | string | `""` |  |
 | commonConfig.common-one-block-store-url | string | `""` |  |
 | commonConfig.common-system-shutdown-signal-delay | string | `"10s"` |  |
+| fullMode.components.baseConsensus.config | object | `{"chain":8453,"l1Beacon":"https://YOUR_BEACON_ENDPOINT","l1EthRpc":"http://evm-loadbalancer:8080/ethereum","l1TrustRpc":true,"l2TrustRpc":true,"p2pBootnodes":"enr:-J24QNz9lbrKbN4iSmmjtnr7SjUMk4zB7f1krHZcTZx-JRKZd0kA2gjufUROD6T3sOWDVDnFJRvqBBo62zuF-hYCohOGAYiOoEyEgmlkgnY0gmlwhAPniryHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQKNVFlCxh_B-716tTs-h1vMzZkSs1FTu_OYTNjgufplG4N0Y3CCJAaDdWRwgiQG,enr:-J24QH-f1wt99sfpHy4c0QJM-NfmsIfmlLAMMcgZCUEgKG_BBYFc6FwYgaMJMQN5dsRBJApIok0jFn-9CS842lGpLmqGAYiOoDRAgmlkgnY0gmlwhLhIgb2Hb3BzdGFja4OFQgCJc2VjcDI1NmsxoQJ9FTIv8B9myn1MWaC_2lJ-sMoeCDkusCsk4BYHjjCq04N0Y3CCJAaDdWRwgiQG,enr:-J24QDXyyxvQYsd0yfsN0cRr1lZ1N11zGTplMNlW4xNEc7LkPXh0NAJ9iSOVdRO95GPYAIc6xmyoCCG6_0JxdL3a0zaGAYiOoAjFgmlkgnY0gmlwhAPckbGHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQJwoS7tzwxqXSyFL7g0JM-KWVbgvjfB8JA__T7yY_cYboN0Y3CCJAaDdWRwgiQG,enr:-J24QHmGyBwUZXIcsGYMaUqGGSl4CFdx9Tozu-vQCn5bHIQbR7On7dZbU61vYvfrJr30t0iahSqhc64J46MnUO2JvQaGAYiOoCKKgmlkgnY0gmlwhAPnCzSHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQINc4fSijfbNIiGhcgvwjsjxVFJHUstK9L1T8OTKUjgloN0Y3CCJAaDdWRwgiQG,enr:-J24QG3ypT4xSu0gjb5PABCmVxZqBjVw9ca7pvsI8jl4KATYAnxBmfkaIuEqy9sKvDHKuNCsy57WwK9wTt2aQgcaDDyGAYiOoGAXgmlkgnY0gmlwhDbGmZaHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQIeAK_--tcLEiu7HvoUlbV52MspE0uCocsx1f_rYvRenIN0Y3CCJAaDdWRwgiQG","p2pPrivPath":"/data/base_consensus_p2p_priv.txt","safedbPath":"/data/safedb"}` | base-consensus configuration |
 | fullMode.components.baseConsensus.config.chain | int | `8453` | L2 chain id (8453 = Base mainnet) |
 | fullMode.components.baseConsensus.config.l1Beacon | string | `"https://YOUR_BEACON_ENDPOINT"` | Ethereum L1 beacon chain endpoint |
-| fullMode.components.baseConsensus.config.l1EthRpc | string | `"http://YOUR_ETHEREUM_ENDPOINT"` | Ethereum L1 execution RPC endpoint |
+| fullMode.components.baseConsensus.config.l1EthRpc | string | `"http://evm-loadbalancer:8080/ethereum"` | Ethereum L1 execution RPC endpoint |
 | fullMode.components.baseConsensus.config.l1TrustRpc | bool | `true` | Trust the L1 RPC without verification |
 | fullMode.components.baseConsensus.config.l2TrustRpc | bool | `true` | Trust the L2 RPC without verification |
 | fullMode.components.baseConsensus.config.p2pBootnodes | string | `"enr:-J24QNz9lbrKbN4iSmmjtnr7SjUMk4zB7f1krHZcTZx-JRKZd0kA2gjufUROD6T3sOWDVDnFJRvqBBo62zuF-hYCohOGAYiOoEyEgmlkgnY0gmlwhAPniryHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQKNVFlCxh_B-716tTs-h1vMzZkSs1FTu_OYTNjgufplG4N0Y3CCJAaDdWRwgiQG,enr:-J24QH-f1wt99sfpHy4c0QJM-NfmsIfmlLAMMcgZCUEgKG_BBYFc6FwYgaMJMQN5dsRBJApIok0jFn-9CS842lGpLmqGAYiOoDRAgmlkgnY0gmlwhLhIgb2Hb3BzdGFja4OFQgCJc2VjcDI1NmsxoQJ9FTIv8B9myn1MWaC_2lJ-sMoeCDkusCsk4BYHjjCq04N0Y3CCJAaDdWRwgiQG,enr:-J24QDXyyxvQYsd0yfsN0cRr1lZ1N11zGTplMNlW4xNEc7LkPXh0NAJ9iSOVdRO95GPYAIc6xmyoCCG6_0JxdL3a0zaGAYiOoAjFgmlkgnY0gmlwhAPckbGHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQJwoS7tzwxqXSyFL7g0JM-KWVbgvjfB8JA__T7yY_cYboN0Y3CCJAaDdWRwgiQG,enr:-J24QHmGyBwUZXIcsGYMaUqGGSl4CFdx9Tozu-vQCn5bHIQbR7On7dZbU61vYvfrJr30t0iahSqhc64J46MnUO2JvQaGAYiOoCKKgmlkgnY0gmlwhAPnCzSHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQINc4fSijfbNIiGhcgvwjsjxVFJHUstK9L1T8OTKUjgloN0Y3CCJAaDdWRwgiQG,enr:-J24QG3ypT4xSu0gjb5PABCmVxZqBjVw9ca7pvsI8jl4KATYAnxBmfkaIuEqy9sKvDHKuNCsy57WwK9wTt2aQgcaDDyGAYiOoGAXgmlkgnY0gmlwhDbGmZaHb3BzdGFja4OFQgCJc2VjcDI1NmsxoQIeAK_--tcLEiu7HvoUlbV52MspE0uCocsx1f_rYvRenIN0Y3CCJAaDdWRwgiQG"` | Comma-separated enr bootnode list (defaults to Base mainnet bootnodes) |
@@ -65,6 +66,7 @@ A Helm chart for Kubernetes
 | fullMode.components.indexer.resources | object | `{}` | Resource requests and limits for indexer node |
 | fullMode.components.indexer.tolerations | list | `[]` | Tolerations for indexer node pod scheduling |
 | fullMode.components.lighthouse.affinity | object | `{}` | Affinity rules for lighthouse beacon node pod scheduling |
+| fullMode.components.lighthouse.config | object | `{"checkpointSyncUrl":"https://sync-mainnet.beaconcha.in","network":"mainnet","pruneBlobs":true}` | Lighthouse beacon node configuration |
 | fullMode.components.lighthouse.config.checkpointSyncUrl | string | `"https://sync-mainnet.beaconcha.in"` | Checkpoint sync URL for faster initial sync |
 | fullMode.components.lighthouse.config.network | string | `"mainnet"` | Ethereum network (mainnet, sepolia, holesky) |
 | fullMode.components.lighthouse.config.pruneBlobs | bool | `true` | Remove old blob data to save space (recommended for non-archive nodes) |
@@ -87,6 +89,7 @@ A Helm chart for Kubernetes
 | fullMode.components.merger.resources | object | `{}` | Resource requests and limits for merger node |
 | fullMode.components.merger.tolerations | list | `[]` | Tolerations for merger node pod scheduling |
 | fullMode.components.opNode.affinity | object | `{}` | Affinity rules for op-node pod scheduling |
+| fullMode.components.opNode.config | object | `{"l1":"https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID","l1Beacon":"https://sync-mainnet.beaconcha.in","l1BeaconArchiver":"https://sync-mainnet.beaconcha.in","l1RpcKind":"standard","l1TrustRpc":true,"network":"op-mainnet"}` | OP Node configuration |
 | fullMode.components.opNode.config.l1 | string | `"https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"` | Ethereum L1 RPC endpoint |
 | fullMode.components.opNode.config.l1Beacon | string | `"https://sync-mainnet.beaconcha.in"` | Ethereum L1 beacon chain endpoint |
 | fullMode.components.opNode.config.l1BeaconArchiver | string | `"https://sync-mainnet.beaconcha.in"` | Ethereum L1 beacon chain archiver endpoint |
@@ -100,6 +103,7 @@ A Helm chart for Kubernetes
 | fullMode.components.opNode.podAnnotations | object | `{}` | Annotations to add to op-node pods |
 | fullMode.components.opNode.replicas | int | `1` | Number of replicas for the OP Node |
 | fullMode.components.opNode.resources | object | `{}` | Resource requests and limits for op-node |
+| fullMode.components.opNode.tolerations | list | `[]` | Tolerations for op-node pod scheduling |
 | fullMode.components.reader.affinity | object | `{}` | Affinity rules for reader node pod scheduling |
 | fullMode.components.reader.config.reader-node-arguments | string | `"--networkid=1 --ipcpath={data-dir}/reader/ipc --port=30302 --http --http.api=eth,net,web3 --http.port=8545 --http.addr=0.0.0.0 --http.vhosts=* --authrpc.port=8551 --authrpc.addr=0.0.0.0 --authrpc.vhosts=* --authrpc.jwtsecret=/jwt/jwt.hex --cache=8192 --syncmode=full --vmtrace=firehose"` |  |
 | fullMode.components.reader.config.reader-node-blocks-chan-capacity | int | `5000` |  |
@@ -150,6 +154,7 @@ A Helm chart for Kubernetes
 | mode | string | `"full"` | Firehose operating mode Options:   - "full": Complete Firehose stack with all components (reader, merger, relayer, etc.)   - "chunk": Lightweight mode for specific block ranges |
 | nameOverride | string | `""` |  |
 | s3CredentialsSecret | list | `[]` | Secret name containing S3/object storage credentials. Must contain keys: access-key, secret-key |
+| serviceAccount | object | `{"annotations":{},"automount":true,"create":false,"labels":{},"name":""}` | ServiceAccount configuration |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.automount | bool | `true` | Automatically mount a ServiceAccount's API credentials? |
 | serviceAccount.create | bool | `false` | Specifies whether a service account should be created |

@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "envio-indexer.fullname" . }}-hasura
+  labels:
+    {{- include "envio-indexer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hasura
+spec:
+  {{- if not .Values.autoscaling.hasura.enabled }}
+  replicas: {{ .Values.hasura.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "envio-indexer.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: hasura
+  template:
+    metadata:
+      labels:
+        {{- include "envio-indexer.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: hasura
+        {{- with .Values.hasura.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.hasura.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "envio-indexer.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hasura.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: hasura
+          image: "{{ .Values.hasura.image.repository }}:{{ .Values.hasura.image.tag }}"
+          imagePullPolicy: {{ .Values.hasura.image.pullPolicy }}
+          {{- with .Values.hasura.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ENVIO_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.databaseSecretName" . }}
+                  key: {{ .Values.database.credentials.usernameKey }}
+            - name: ENVIO_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.databaseSecretName" . }}
+                  key: {{ .Values.database.credentials.passwordKey }}
+            - name: HASURA_GRAPHQL_DATABASE_URL
+              value: "postgres://$(ENVIO_PG_USER):$(ENVIO_PG_PASSWORD)@{{ include "envio-indexer.databaseUriWithoutScheme" . }}"
+            - name: HASURA_GRAPHQL_ENABLE_CONSOLE
+              value: {{ .Values.hasura.enableConsole | quote }}
+            - name: HASURA_GRAPHQL_ENABLED_LOG_TYPES
+              value: {{ join ", " .Values.hasura.logTypes | quote }}
+            - name: HASURA_GRAPHQL_NO_OF_RETRIES
+              value: "10"
+            - name: HASURA_GRAPHQL_ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.hasuraSecretName" . }}
+                  key: {{ .Values.hasura.adminSecret.key }}
+            - name: HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES
+              value: {{ .Values.hasura.stringifyNumericTypes | quote }}
+            - name: HASURA_GRAPHQL_UNAUTHORIZED_ROLE
+              value: {{ .Values.hasura.unauthorizedRole | quote }}
+            - name: PORT
+              value: "8080"
+            {{- with .Values.hasura.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.hasura.resources | nindent 12 }}
+      {{- with .Values.hasura.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hasura.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hasura.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

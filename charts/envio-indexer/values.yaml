@@ -1,0 +1,165 @@
+# Default values for envio-indexer.
+#
+# This chart is intentionally generic: it does not include Postgres and it does
+# not bake in chain-specific Envio config. The default image is a generic
+# envio@3.2.1 runtime; for production you can also point indexer.image at a
+# project-specific image that contains config.yaml, schema, ABIs, and handlers.
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+imagePullSecrets: []
+
+database:
+  # Connection URI without credentials, for example:
+  # postgres://postgres.example.internal:5432/envio
+  # postgresql://postgres.example.internal:5432/envio?sslmode=require
+  uri: "postgres://postgres.example.internal:5432/envio"
+  # Envio uses this schema for generated indexer tables.
+  publicSchema: "envio"
+  # Optional Envio indexer SSL mode for external Postgres. Accepted by
+  # envio@3.2.1: "require", "allow", "prefer", "verify-full", "true", "false".
+  # Keep empty for Envio's default false.
+  sslMode: ""
+  credentials:
+    # Required: create this Secret outside the chart.
+    existingSecret: "envio-postgres-credentials"
+    usernameKey: "username"
+    passwordKey: "password"
+
+dataSources:
+  # HyperSync is Envio-hosted. Enable this when the indexer should use
+  # HyperSync for supported chains and your config.yaml does not force
+  # historical RPC for those chains.
+  hypersync:
+    enabled: false
+    apiToken:
+      existingSecret: ""
+      key: "token"
+  # RPC mode is for your own node/provider URLs. Internal Kubernetes Service
+  # URLs can be plain values; use existingSecret only for URLs with API keys.
+  # These env names are user-defined pass-through values for your config.yaml,
+  # not special Envio runtime variables. Use ENVIO_* names to stay compatible
+  # with Envio's environment variable convention.
+  rpc:
+    enabled: false
+    endpoints: []
+    # Example:
+    # endpoints:
+    #   - envName: ENVIO_ETH_RPC_URL
+    #     value: http://reth-mainnet-rpc.default.svc.cluster.local:8545
+    #   - envName: ENVIO_BASE_RPC_URL
+    #     value: http://base-rpc.default.svc.cluster.local:8545
+  # HyperRPC is Envio-hosted but exposes a JSON-RPC-compatible URL. Treat it as
+  # an RPC endpoint from the indexer's point of view.
+  hyperrpc:
+    enabled: false
+    endpoints: []
+    # Example:
+    # endpoints:
+    #   - envName: ENVIO_ETH_HYPERRPC_URL
+    #     existingSecret: my-hyperrpc-secrets
+    #     secretKey: eth-hyperrpc-url
+
+hasura:
+  image:
+    repository: hasura/graphql-engine
+    tag: v2.43.0
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  adminSecret:
+    # Required: create this Secret outside the chart.
+    existingSecret: "envio-hasura-admin"
+    key: "admin-secret"
+  enableConsole: true
+  unauthorizedRole: public
+  stringifyNumericTypes: true
+  logTypes:
+    - startup
+    - http-log
+    - webhook-log
+    - websocket-log
+    - query-log
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+  resources: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+  podSecurityContext: {}
+  extraEnv: []
+
+indexer:
+  image:
+    repository: "kw1k/envio-indexer"
+    tag: "v3.2.1"
+    pullPolicy: IfNotPresent
+  # Keep this at 1 for a given Envio project and Postgres schema. HyperIndex
+  # parallelizes internally; identical replicas do not shard work safely.
+  replicaCount: 1
+  port: 9898
+  # Real envio@3.2.1 config env var. Equivalent to `envio start --config`.
+  configFile: "config.yaml"
+  logLevel: "info"
+  # Valid envio@3.2.1 values include console-pretty, console-raw, ecs-console,
+  # ecs-console-multistream, ecs-file, file-only, and both-prettyconsole.
+  logStrategy: "console-pretty"
+  tuiOff: true
+  service:
+    type: ClusterIP
+    port: 9898
+    annotations: {}
+  resources: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podSecurityContext: {}
+  securityContext: {}
+  extraEnv: []
+  envFrom: []
+  # Mount your Envio project here when using the generic runtime image.
+  # Example:
+  # extraVolumes:
+  #   - name: envio-project
+  #     persistentVolumeClaim:
+  #       claimName: my-envio-project
+  extraVolumes: []
+  # Example:
+  # extraVolumeMounts:
+  #   - name: envio-project
+  #     mountPath: /envio-indexer
+  extraVolumeMounts: []
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: envio.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: hasura
+  tls: []
+
+autoscaling:
+  hasura:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
