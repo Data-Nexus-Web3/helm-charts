@@ -22,6 +22,28 @@ entries:
     urls:
     - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/avalanche-0.1.0/avalanche-0.1.0.tgz
     version: 0.1.0
+  envio-indexer:
+  - apiVersion: v2
+    appVersion: v3.2.1
+    created: "2026-06-30T20:15:24.93689911Z"
+    description: Run an Envio HyperIndex indexer with Hasura and an external Postgres
+      database
+    digest: 96cae3b8a1e41ab6ddeed6e43013f4f83b7939632c8050d9ca75e7a0016a65b5
+    home: https://envio.dev
+    keywords:
+    - envio
+    - hyperindex
+    - hasura
+    - indexer
+    name: envio-indexer
+    sources:
+    - https://docs.envio.dev/docs/HyperIndex/self-hosting
+    - https://docs.envio.dev/docs/HyperIndex/overview
+    - https://www.npmjs.com/package/envio
+    type: application
+    urls:
+    - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/envio-indexer-0.1.0/envio-indexer-0.1.0.tgz
+    version: 0.1.0
   firehose-ethereum:
   - annotations:
       lookupName: ghcr.io/streamingfast/go-ethereum
@@ -121,4 +143,4 @@ entries:
     urls:
     - https://github.com/Data-Nexus-Web3/helm-charts/releases/download/reth-0.1.0/reth-0.1.0.tgz
     version: 0.1.0
-generated: "2026-06-30T19:57:49.697407505Z"
+generated: "2026-06-30T20:15:24.936917424Z"
