@@ -39,6 +39,7 @@ dataSources:
   hypersync:
     enabled: false
     apiToken:
+      # Required when HyperSync is enabled.
       existingSecret: ""
       key: "token"
   # RPC mode is for your own node/provider URLs. Internal Kubernetes Service
