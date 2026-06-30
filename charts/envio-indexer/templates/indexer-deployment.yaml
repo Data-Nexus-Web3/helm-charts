@@ -1,0 +1,163 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "envio-indexer.fullname" . }}-indexer
+  labels:
+    {{- include "envio-indexer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: indexer
+spec:
+  replicas: {{ .Values.indexer.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "envio-indexer.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: indexer
+  template:
+    metadata:
+      labels:
+        {{- include "envio-indexer.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: indexer
+        {{- with .Values.indexer.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.indexer.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "envio-indexer.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: indexer
+          image: "{{ .Values.indexer.image.repository }}:{{ .Values.indexer.image.tag }}"
+          imagePullPolicy: {{ .Values.indexer.image.pullPolicy }}
+          {{- with .Values.indexer.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.indexer.port }}
+              protocol: TCP
+          {{- with .Values.indexer.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: ENVIO_PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.databaseSecretName" . }}
+                  key: {{ .Values.database.credentials.usernameKey }}
+            - name: ENVIO_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.databaseSecretName" . }}
+                  key: {{ .Values.database.credentials.passwordKey }}
+            - name: ENVIO_PG_HOST
+              value: {{ regexFind "^[^:/?]+" (include "envio-indexer.databaseUriWithoutScheme" .) | quote }}
+            - name: ENVIO_PG_PORT
+              value: {{ regexFind ":[0-9]+" (include "envio-indexer.databaseUriWithoutScheme" .) | trimPrefix ":" | default "5432" | quote }}
+            - name: ENVIO_PG_DATABASE
+              value: {{ regexReplaceAll "^([^/?]+)(/([^?]+))?.*$" (include "envio-indexer.databaseUriWithoutScheme" .) "${3}" | default "postgres" | quote }}
+            - name: ENVIO_PG_SCHEMA
+              value: {{ .Values.database.publicSchema | quote }}
+            {{- with .Values.database.sslMode }}
+            - name: ENVIO_PG_SSL_MODE
+              value: {{ . | quote }}
+            {{- end }}
+            - name: ENVIO_INDEXER_PORT
+              value: {{ .Values.indexer.port | quote }}
+            - name: ENVIO_CONFIG
+              value: {{ .Values.indexer.configFile | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.indexer.logLevel | quote }}
+            - name: LOG_STRATEGY
+              value: {{ .Values.indexer.logStrategy | quote }}
+            - name: HASURA_GRAPHQL_ENDPOINT
+              value: "http://{{ include "envio-indexer.fullname" . }}-hasura:{{ .Values.hasura.service.port }}/v1/metadata"
+            - name: HASURA_GRAPHQL_ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.hasuraSecretName" . }}
+                  key: {{ .Values.hasura.adminSecret.key }}
+            - name: ENVIO_TUI
+              value: {{ ternary "false" "true" .Values.indexer.tuiOff | quote }}
+            {{- if .Values.dataSources.hypersync.enabled }}
+            - name: ENVIO_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "envio-indexer.hypersyncSecretName" . }}
+                  key: {{ .Values.dataSources.hypersync.apiToken.key }}
+            {{- end }}
+            {{- if .Values.dataSources.rpc.enabled }}
+            {{- range .Values.dataSources.rpc.endpoints }}
+            - name: {{ required "dataSources.rpc.endpoints[].envName is required" .envName }}
+              {{- if .existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .existingSecret }}
+                  key: {{ required (printf "dataSources.rpc.endpoints[%s].secretKey is required when existingSecret is set" .envName) .secretKey }}
+              {{- else }}
+              value: {{ required (printf "dataSources.rpc.endpoints[%s].value is required when existingSecret is not set" .envName) .value | quote }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.dataSources.hyperrpc.enabled }}
+            {{- range .Values.dataSources.hyperrpc.endpoints }}
+            - name: {{ required "dataSources.hyperrpc.endpoints[].envName is required" .envName }}
+              {{- if .existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .existingSecret }}
+                  key: {{ required (printf "dataSources.hyperrpc.endpoints[%s].secretKey is required when existingSecret is set" .envName) .secretKey }}
+              {{- else }}
+              value: {{ required (printf "dataSources.hyperrpc.endpoints[%s].value is required when existingSecret is not set" .envName) .value | quote }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.indexer.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.indexer.resources | nindent 12 }}
+          {{- with .Values.indexer.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.indexer.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.indexer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

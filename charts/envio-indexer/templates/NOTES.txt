@@ -1,0 +1,21 @@
+Envio HyperIndex has been installed.
+
+Hasura service:
+  {{ include "envio-indexer.fullname" . }}-hasura.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.hasura.service.port }}
+
+Indexer service:
+  {{ include "envio-indexer.fullname" . }}-indexer.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.indexer.service.port }}
+
+Before using this release, make sure these Secrets exist unless you enabled chart-created secrets:
+  Database credentials Secret: {{ include "envio-indexer.databaseSecretName" . }}
+    username key: {{ .Values.database.credentials.usernameKey }}
+    password key: {{ .Values.database.credentials.passwordKey }}
+  Hasura admin Secret: {{ include "envio-indexer.hasuraSecretName" . }}
+    admin secret key: {{ .Values.hasura.adminSecret.key }}
+
+The indexer image must already contain your Envio project files and generated code.
+
+Data source mode is controlled by your Envio config plus these optional chart values:
+  HyperSync token env: dataSources.hypersync.enabled=true
+  Self-owned RPC env vars: dataSources.rpc.enabled=true
+  HyperRPC env vars: dataSources.hyperrpc.enabled=true
