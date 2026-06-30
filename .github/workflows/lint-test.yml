@@ -55,6 +55,7 @@ jobs:
             [[ -n "$chart" ]] || continue
             (cd "$chart" && helm-docs)
           done <<< "$CHANGED_CHARTS"
+          git checkout -- README.md
 
       - name: Generate root README chart table
         run: ./scripts/update-available-charts.sh
