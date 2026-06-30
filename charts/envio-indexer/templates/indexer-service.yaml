@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "envio-indexer.fullname" . }}-indexer
+  labels:
+    {{- include "envio-indexer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: indexer
+  {{- with .Values.indexer.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.indexer.service.type }}
+  ports:
+    - port: {{ .Values.indexer.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "envio-indexer.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: indexer

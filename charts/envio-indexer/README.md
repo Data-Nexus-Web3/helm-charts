@@ -1,0 +1,104 @@
+# envio-indexer
+
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v3.2.1](https://img.shields.io/badge/AppVersion-v3.2.1-informational?style=flat-square)
+
+Run an Envio HyperIndex indexer with Hasura and an external Postgres database
+
+**Homepage:** <https://envio.dev>
+
+## Source Code
+
+* <https://docs.envio.dev/docs/HyperIndex/self-hosting>
+* <https://docs.envio.dev/docs/HyperIndex/overview>
+* <https://www.npmjs.com/package/envio>
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| autoscaling.hasura.enabled | bool | `false` |  |
+| autoscaling.hasura.maxReplicas | int | `3` |  |
+| autoscaling.hasura.minReplicas | int | `1` |  |
+| autoscaling.hasura.targetCPUUtilizationPercentage | int | `80` |  |
+| dataSources.hyperrpc.enabled | bool | `false` |  |
+| dataSources.hyperrpc.endpoints | list | `[]` |  |
+| dataSources.hypersync.apiToken.existingSecret | string | `""` |  |
+| dataSources.hypersync.apiToken.key | string | `"token"` |  |
+| dataSources.hypersync.enabled | bool | `false` |  |
+| dataSources.rpc.enabled | bool | `false` |  |
+| dataSources.rpc.endpoints | list | `[]` |  |
+| database.credentials.existingSecret | string | `"envio-postgres-credentials"` |  |
+| database.credentials.passwordKey | string | `"password"` |  |
+| database.credentials.usernameKey | string | `"username"` |  |
+| database.publicSchema | string | `"envio"` |  |
+| database.sslMode | string | `""` |  |
+| database.uri | string | `"postgres://postgres.example.internal:5432/envio"` |  |
+| fullnameOverride | string | `""` |  |
+| hasura.adminSecret.existingSecret | string | `"envio-hasura-admin"` |  |
+| hasura.adminSecret.key | string | `"admin-secret"` |  |
+| hasura.affinity | object | `{}` |  |
+| hasura.enableConsole | bool | `true` |  |
+| hasura.extraEnv | list | `[]` |  |
+| hasura.image.pullPolicy | string | `"IfNotPresent"` |  |
+| hasura.image.repository | string | `"hasura/graphql-engine"` |  |
+| hasura.image.tag | string | `"v2.43.0"` |  |
+| hasura.logTypes[0] | string | `"startup"` |  |
+| hasura.logTypes[1] | string | `"http-log"` |  |
+| hasura.logTypes[2] | string | `"webhook-log"` |  |
+| hasura.logTypes[3] | string | `"websocket-log"` |  |
+| hasura.logTypes[4] | string | `"query-log"` |  |
+| hasura.nodeSelector | object | `{}` |  |
+| hasura.podAnnotations | object | `{}` |  |
+| hasura.podLabels | object | `{}` |  |
+| hasura.podSecurityContext | object | `{}` |  |
+| hasura.replicaCount | int | `1` |  |
+| hasura.resources | object | `{}` |  |
+| hasura.securityContext.runAsGroup | int | `1001` |  |
+| hasura.securityContext.runAsNonRoot | bool | `true` |  |
+| hasura.securityContext.runAsUser | int | `1001` |  |
+| hasura.service.annotations | object | `{}` |  |
+| hasura.service.port | int | `8080` |  |
+| hasura.service.type | string | `"ClusterIP"` |  |
+| hasura.stringifyNumericTypes | bool | `true` |  |
+| hasura.tolerations | list | `[]` |  |
+| hasura.unauthorizedRole | string | `"public"` |  |
+| imagePullSecrets | list | `[]` |  |
+| indexer.affinity | object | `{}` |  |
+| indexer.configFile | string | `"config.yaml"` |  |
+| indexer.envFrom | list | `[]` |  |
+| indexer.extraEnv | list | `[]` |  |
+| indexer.extraVolumeMounts | list | `[]` |  |
+| indexer.extraVolumes | list | `[]` |  |
+| indexer.image.pullPolicy | string | `"IfNotPresent"` |  |
+| indexer.image.repository | string | `"kw1k/envio-indexer"` |  |
+| indexer.image.tag | string | `"v3.2.1"` |  |
+| indexer.logLevel | string | `"info"` |  |
+| indexer.logStrategy | string | `"console-pretty"` |  |
+| indexer.nodeSelector | object | `{}` |  |
+| indexer.podAnnotations | object | `{}` |  |
+| indexer.podLabels | object | `{}` |  |
+| indexer.podSecurityContext | object | `{}` |  |
+| indexer.port | int | `9898` |  |
+| indexer.replicaCount | int | `1` |  |
+| indexer.resources | object | `{}` |  |
+| indexer.securityContext | object | `{}` |  |
+| indexer.service.annotations | object | `{}` |  |
+| indexer.service.port | int | `9898` |  |
+| indexer.service.type | string | `"ClusterIP"` |  |
+| indexer.tolerations | list | `[]` |  |
+| indexer.tuiOff | bool | `true` |  |
+| ingress.annotations | object | `{}` |  |
+| ingress.className | string | `""` |  |
+| ingress.enabled | bool | `false` |  |
+| ingress.hosts[0].host | string | `"envio.example.com"` |  |
+| ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| ingress.hosts[0].paths[0].service | string | `"hasura"` |  |
+| ingress.tls | list | `[]` |  |
+| nameOverride | string | `""` |  |
+| serviceAccount.annotations | object | `{}` |  |
+| serviceAccount.create | bool | `true` |  |
+| serviceAccount.name | string | `""` |  |
+
+----------------------------------------------
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

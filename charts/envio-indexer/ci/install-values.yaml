@@ -1,0 +1,5 @@
+hasura:
+  replicaCount: 0
+
+indexer:
+  replicaCount: 0
