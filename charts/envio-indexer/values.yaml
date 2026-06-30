@@ -27,7 +27,7 @@ database:
   # Keep empty for Envio's default false.
   sslMode: ""
   credentials:
-    # Required: create this Secret outside the chart.
+    # Required for production installs: create this Secret outside the chart.
     existingSecret: "envio-postgres-credentials"
     usernameKey: "username"
     passwordKey: "password"
@@ -73,7 +73,7 @@ hasura:
     pullPolicy: IfNotPresent
   replicaCount: 1
   adminSecret:
-    # Required: create this Secret outside the chart.
+    # Required for production installs: create this Secret outside the chart.
     existingSecret: "envio-hasura-admin"
     key: "admin-secret"
   enableConsole: true
